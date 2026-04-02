@@ -1,0 +1,13 @@
+#!/usr/bin/bash
+
+if [[ ! -f "${SDK}/bin/codex" ]]; then
+    workshopctl set-health --code="codex-not-installed" error "Codex not installed."
+    exit 0
+fi
+
+if ! sudo -u workshop --login which codex >/dev/null 2>&1; then
+    workshopctl set-health --code="codex-not-on-path" error "Codex not available on the \$PATH."
+    exit 0
+fi
+
+workshopctl set-health okay

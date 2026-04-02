@@ -1,0 +1,37 @@
+name: codex
+title: OpenAI Codex SDK
+adopt-info: codex
+summary: OpenAI Codex CLI agent
+description: |
+  This SDK provides the OpenAI Codex CLI for AI-assisted coding within a
+  workshop. The agent is sandboxed in the workshop container. Credentials are
+  persisted between workshop updates.
+license: https://openai.com/policies/row-terms-of-use/
+build-base: ubuntu@24.04
+platforms:
+  amd64:
+    build-on: [amd64]
+    build-for: [amd64]
+
+plugs:
+  codex-config:
+    interface: mount
+    workshop-target: /home/workshop/.codex
+
+parts:
+  codex:
+    plugin: npm
+    source: .
+    npm-include-node: true
+    npm-node-version: 22.22.1
+    override-pull: |
+      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
+      craftctl set version="$VERSION"
+      curl -fLO "https://registry.npmjs.org/@openai/codex/-/codex-${VERSION}.tgz"
+      tar -xzf "codex-${VERSION}.tgz" --strip-components=1 -C "$CRAFT_PART_SRC"
+      rm "codex-${VERSION}.tgz"
+
+  workshop-prompt:
+    plugin: dump
+    source: workshop-prompt.md
+    source-type: file
