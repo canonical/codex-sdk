@@ -13,9 +13,10 @@
       "matchStrings": [
         "(?<currentValue>[0-9.]+)"
       ],
-      "depNameTemplate": "@openai/codex",
-      "datasourceTemplate": "npm",
-      "versioningTemplate": "semver"
+      "depNameTemplate": "openai/codex",
+      "datasourceTemplate": "github-releases",
+      "versioningTemplate": "semver",
+      "extractVersionTemplate": "^rust-v(?<version>.+)$"
     }
   ],
   "baseBranchPatterns": [
@@ -23,7 +24,7 @@
   ],
   "packageRules": [
     {
-      "matchPackageNames": ["@openai/codex"],
+      "matchPackageNames": ["openai/codex"],
       "matchBaseBranches": ["latest"]
     }
   ]

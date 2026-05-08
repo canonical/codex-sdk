@@ -20,16 +20,52 @@ plugs:
 
 parts:
   codex:
-    plugin: npm
-    source: .
-    npm-include-node: true
-    npm-node-version: 22.22.1
+    plugin: nil
+    build-packages:
+      - curl
+      - ca-certificates
+      - jq
     override-pull: |
-      VERSION=$(cat "$CRAFT_PROJECT_DIR/VERSION")
+      VERSION="$(cat "$CRAFT_PROJECT_DIR/VERSION")"
       craftctl set version="$VERSION"
-      curl -fLO "https://registry.npmjs.org/@openai/codex/-/codex-${VERSION}.tgz"
-      tar -xzf "codex-${VERSION}.tgz" --strip-components=1 -C "$CRAFT_PART_SRC"
-      rm "codex-${VERSION}.tgz"
+      TAG="rust-v${VERSION}"
+      ASSET="codex-x86_64-unknown-linux-musl.tar.gz"
+      API_URL="https://api.github.com/repos/openai/codex/releases/tags/${TAG}"
+      DOWNLOAD_URL="https://github.com/openai/codex/releases/download/${TAG}/${ASSET}"
+
+      echo "Fetching release metadata for ${TAG}..."
+      RELEASE_JSON="$(curl -fsSL \
+        -H "Accept: application/vnd.github+json" \
+        -H "X-GitHub-Api-Version: 2022-11-28" \
+        "${API_URL}")"
+
+      DIGEST="$(echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name == \"${ASSET}\") | .digest")"
+      CHECKSUM="${DIGEST#sha256:}"
+
+      if ! echo "$CHECKSUM" | grep -qE '^[a-f0-9]{64}$'; then
+        echo "Invalid or missing checksum for ${ASSET} in ${TAG}" >&2
+        exit 1
+      fi
+
+      echo "Downloading ${DOWNLOAD_URL}..."
+      curl -fsSL -o "$CRAFT_PART_SRC/${ASSET}" "${DOWNLOAD_URL}"
+
+      ACTUAL="$(sha256sum "$CRAFT_PART_SRC/${ASSET}" | cut -d' ' -f1)"
+      if [ "$ACTUAL" != "$CHECKSUM" ]; then
+        echo "Checksum mismatch!" >&2
+        echo "  expected: $CHECKSUM" >&2
+        echo "  actual:   $ACTUAL" >&2
+        rm -f "$CRAFT_PART_SRC/${ASSET}"
+        exit 1
+      fi
+      echo "Checksum OK."
+
+      tar -xzf "$CRAFT_PART_SRC/${ASSET}" -C "$CRAFT_PART_SRC"
+      mv "$CRAFT_PART_SRC/codex-x86_64-unknown-linux-musl" "$CRAFT_PART_SRC/codex"
+      chmod 755 "$CRAFT_PART_SRC/codex"
+      rm -f "$CRAFT_PART_SRC/${ASSET}"
+    override-build: |
+      install -Dm755 "$CRAFT_PART_SRC/codex" "$CRAFT_PRIME/bin/codex"
 
   workshop-prompt:
     plugin: dump
