@@ -10,8 +10,7 @@ license: https://openai.com/policies/row-terms-of-use/
 build-base: ubuntu@24.04
 platforms:
   amd64:
-    build-on: [amd64]
-    build-for: [amd64]
+  arm64:
 
 plugs:
   codex-config:
@@ -24,26 +23,21 @@ parts:
     build-packages:
       - curl
       - ca-certificates
-      - jq
     override-pull: |
       VERSION="$(cat "$CRAFT_PROJECT_DIR/VERSION")"
       craftctl set version="$VERSION"
-      TAG="rust-v${VERSION}"
-      ASSET="codex-x86_64-unknown-linux-musl.tar.gz"
-      API_URL="https://api.github.com/repos/openai/codex/releases/tags/${TAG}"
-      DOWNLOAD_URL="https://github.com/openai/codex/releases/download/${TAG}/${ASSET}"
 
-      echo "Fetching release metadata for ${TAG}..."
-      RELEASE_JSON="$(curl -fsSL \
-        -H "Accept: application/vnd.github+json" \
-        -H "X-GitHub-Api-Version: 2022-11-28" \
-        "${API_URL}")"
+      case "${CRAFT_ARCH_BUILD_FOR}" in
+        amd64) ARCH=x86_64  ;;
+        arm64) ARCH=aarch64 ;;
+        *) echo "Unsupported arch: ${CRAFT_ARCH_BUILD_FOR}" >&2; exit 1 ;;
+      esac
+      ASSET="codex-${ARCH}-unknown-linux-musl.tar.gz"
+      DOWNLOAD_URL="https://github.com/openai/codex/releases/download/rust-v${VERSION}/${ASSET}"
 
-      DIGEST="$(echo "$RELEASE_JSON" | jq -r ".assets[] | select(.name == \"${ASSET}\") | .digest")"
-      CHECKSUM="${DIGEST#sha256:}"
-
+      CHECKSUM="$(awk -v key="$ASSET" '$2 == key {print $1}' "$CRAFT_PROJECT_DIR/CHECKSUMS")"
       if ! echo "$CHECKSUM" | grep -qE '^[a-f0-9]{64}$'; then
-        echo "Invalid or missing checksum for ${ASSET} in ${TAG}" >&2
+        echo "Invalid or missing checksum for ${ASSET} in CHECKSUMS" >&2
         exit 1
       fi
 
@@ -58,14 +52,13 @@ parts:
         rm -f "$CRAFT_PART_SRC/${ASSET}"
         exit 1
       fi
-      echo "Checksum OK."
 
+      echo "Checksum OK. Extracting..."
       tar -xzf "$CRAFT_PART_SRC/${ASSET}" -C "$CRAFT_PART_SRC"
-      mv "$CRAFT_PART_SRC/codex-x86_64-unknown-linux-musl" "$CRAFT_PART_SRC/codex"
-      chmod 755 "$CRAFT_PART_SRC/codex"
+      mv "$CRAFT_PART_SRC/codex-${ARCH}-unknown-linux-musl" "$CRAFT_PART_SRC/codex"
       rm -f "$CRAFT_PART_SRC/${ASSET}"
     override-build: |
-      install -Dm755 "$CRAFT_PART_SRC/codex" "$CRAFT_PRIME/bin/codex"
+      install -Dm755 "$CRAFT_PART_SRC/codex" "$CRAFT_PART_INSTALL/bin/codex"
 
   workshop-prompt:
     plugin: dump

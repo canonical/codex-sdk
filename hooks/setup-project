@@ -1,11 +1,8 @@
-#!/usr/bin/bash
+mkdir -p "$HOME/.codex"
 
-mkdir -p /home/workshop/.codex
-
-# Conditionally write AGENTS.md — do not overwrite if user already has one
-if [[ ! -f "/home/workshop/.codex/AGENTS.md" ]]; then
-    cp "${SDK}/workshop-prompt.md" "/home/workshop/.codex/AGENTS.md"
-elif ! grep -Fq "$(head -1 "${SDK}/workshop-prompt.md")" "/home/workshop/.codex/AGENTS.md"; then
-    printf '\n' >> "/home/workshop/.codex/AGENTS.md"
-    cat "${SDK}/workshop-prompt.md" >> "/home/workshop/.codex/AGENTS.md"
+# Install the SDK's AGENTS.md only on first run. Once it exists — whether
+# unchanged from the SDK or user-customised — refreshes leave it alone.
+# To pull in an updated SDK prompt, delete the file and run `workshop refresh`.
+if [[ ! -f "$HOME/.codex/AGENTS.md" ]]; then
+    install -m644 "${SDK}/workshop-prompt.md" "$HOME/.codex/AGENTS.md"
 fi

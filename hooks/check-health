@@ -1,5 +1,3 @@
-#!/usr/bin/bash
-
 if [[ ! -f "${SDK}/bin/codex" ]]; then
     workshopctl set-health --code="codex-not-installed" error "Codex not installed."
     exit 0
