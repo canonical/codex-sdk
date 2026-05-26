@@ -7,11 +7,14 @@ description: |
   workshop. The agent is sandboxed in the workshop container. Credentials are
   persisted between workshop updates.
 license: https://openai.com/policies/row-terms-of-use/
-build-base: ubuntu@24.04
+build-base: ubuntu@26.04
 platforms:
   amd64:
-    build-on: [amd64]
+    build-on: [amd64, arm64]
     build-for: [amd64]
+  arm64:
+    build-on: [amd64, arm64]
+    build-for: [arm64]
 
 plugs:
   codex-config:
