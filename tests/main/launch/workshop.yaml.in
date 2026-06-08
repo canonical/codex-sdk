@@ -1,0 +1,4 @@
+name: test-codex
+base: ${BASE}
+sdks:
+  - name: try-codex
