@@ -7,6 +7,7 @@ description: |
   workshop. The agent is sandboxed in the workshop container. Credentials are
   persisted between workshop updates.
 license: https://openai.com/policies/row-terms-of-use/
+website: https://github.com/canonical/codex-sdk
 build-base: ubuntu@26.04
 platforms:
   amd64:
